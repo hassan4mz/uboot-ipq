@@ -1,0 +1,74 @@
+# 构建产物目录
+/bin/
+*.zip
+
+# 构建日志
+build.log
+build.clean.log
+
+# 中间文件（对象、静态库、汇编、链接脚本、大小图等）
+*.o
+*.su
+*.a
+*.s
+*.elf
+*.bin
+*.map
+*.srec
+*.md5
+*.lds
+
+# 构建配置和依赖信息
+*.depend
+*.depend.*
+.depend
+**/.depend
+**/.depend.*
+
+# 特定目标文件
+u-boot
+u-boot.*
+u-boot.lds
+System.map
+
+# 自动生成的 include 和 config 文件
+/include/asm
+/include/autoconf.mk
+/include/autoconf.mk.dep
+/include/config.h
+/include/config.mk
+/include/generated/
+
+# 架构临时链接头
+/arch/arm/include/asm/arch
+/arch/arm/include/asm/proc
+
+# 示例产物和中间文件
+/examples/standalone/hello_world*
+/examples/standalone/*.srec
+/examples/standalone/*.o
+/examples/standalone/*.su
+/examples/standalone/*.bin
+
+# 工具构建目标
+/tools/dumpimage
+/tools/gen_eth_addr
+/tools/mkenvimage
+/tools/mkimage
+/tools/*.o
+/tools/*.su
+/tools/*.map
+
+# 通用递归规则（确保子目录下中间产物也忽略）
+**/*.o
+**/*.su
+**/*.a
+**/*.map
+**/*.bin
+**/*.s
+**/*.srec
+**/*.elf
+**/*.md5
+**/*.depend*
+**/u-boot*
+
