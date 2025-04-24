@@ -14,8 +14,7 @@ show_help() {
     echo ""
     echo "命令列表:"
     echo -e "  ${YELLOW}all${RESET}           编译 include/configs/ 下所有板子"
-    echo -e "  ${YELLOW}clean${RESET}         清理构建输出"
-    echo -e "  ${YELLOW}distclean${RESET}     更彻底地清理构建输出"
+    echo -e "  ${YELLOW}clean${RESET}         清理构建输出（删除 bin/ 和日志）"
     echo -e "  ${YELLOW}help${RESET}          显示此帮助信息"
     echo ""
     echo "支持的 board 名称:"
@@ -80,19 +79,36 @@ build_board() {
     echo -e "${GREEN}✅ 编译完成: $(basename "$out_elf")${RESET}" | tee -a "$LOGFILE"
     echo -e "${GREEN}✅ 生成校验: $(basename "$out_elf").md5${RESET}" | tee -a "$LOGFILE"
 
-    # 打包成 zip，输出在 bin/
+    # 清理 build.log 中颜色和 emoji，生成 clean 日志
+    sed -r 's/\x1B\[[0-9;]*[a-zA-Z]//g; s/[[:cntrl:]]//g; s/[^[:print:]\t]//g' build.log > build.clean.log
+
+    # 打包当前板子产物 + 干净日志
     local timestamp=$(date +%Y%m%d_%H%M%S)
-    local zipfile="${BUILD_TOPDIR}/bin/output-${board}-${timestamp}.zip"
-    (
-        cd "${BUILD_TOPDIR}/bin"
-        zip -9qr "$zipfile" . > /dev/null
-    )
+    local zipfile="bin/output-${board}-${timestamp}.zip"
+    zip -9j "$zipfile" "$out_elf" "$out_elf.md5" build.clean.log > /dev/null
     echo -e "${GREEN}📦 打包成功: $(basename "$zipfile")${RESET}" | tee -a "$LOGFILE"
+
+    # 显示构建产物信息（KiB 单位）
+    local elfsize=$(stat -c%s "$out_elf" | awk '{printf "%.1f KiB", $1/1024}')
+    local elfmd5=$(md5sum "$out_elf" | awk '{print $1}')
+    local zipsize=$(stat -c%s "$zipfile" | awk '{printf "%.1f KiB", $1/1024}')
+    local zipmd5=$(md5sum "$zipfile" | awk '{print $1}')
+
+    echo -e "${CYAN}📄 构建产物详情：${RESET}"
+    echo -e "  ➤ ELF 文件:       $(basename "$out_elf")"
+    echo -e "      大小:         ${elfsize}"
+    echo -e "      MD5:          ${elfmd5}"
+    echo -e "  ➤ 打包文件:      $(basename "$zipfile")"
+    echo -e "      大小:         ${zipsize}"
+    echo -e "      路径:         ${zipfile}"
+    echo -e "      MD5:          ${zipmd5}"
 }
 
 clean_build() {
     echo -e "${YELLOW}===> 清理构建文件...${RESET}"
-    rm -rf ./bin build.log
+    rm -rf ./bin
+    find . -maxdepth 1 -type f -name "build*.log" -exec rm -f {} \;
+
     rm -f .depend
     find . -type f \( \
         -name "*.o" -or -name "*.su" -or -name "*.a" -or \
@@ -101,7 +117,6 @@ clean_build() {
         -name "u-boot" -or -name "envcrc" \
     \) -exec rm -f {} \;
 
-    # 删除指定路径和文件
     rm -rf \
         arch/arm/include/asm/arch \
         arch/arm/include/asm/proc \
@@ -118,22 +133,24 @@ clean_build() {
         tools/mkimage \
         u-boot.lds
 
+    if git rev-parse --is-inside-work-tree &>/dev/null; then
+        echo -e "${YELLOW}===> 删除 git 未跟踪文件和目录...${RESET}"
+        git clean -fd
+    fi
+
     if [[ -d ./uboot ]]; then
         cd ./uboot
         make --silent clean || echo "提示: uboot 目录下无 clean 目标"
         cd ..
     fi
+
     echo -e "${GREEN}===> 清理完成${RESET}"
 }
-
 
 # 主入口
 case "$1" in
     clean)
         clean_build
-        ;;
-    distclean)
-        distclean_build
         ;;
     help|-h|--help)
         show_help
