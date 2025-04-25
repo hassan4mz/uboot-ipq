@@ -970,6 +970,79 @@ gpio_func_data_t ap_dk01_1_c2_sw_gpio_qfn[] = {
 	},
 };
 
+gpio_func_data_t aliyun_ap4220_sw_gpio_qfn[] = {
+	{
+		.gpio = 52,
+		.func = 2,
+		.pull = GPIO_PULL_UP,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_DISABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+	{
+		.gpio = 53,
+		.func = 2,
+		.pull = GPIO_PULL_UP,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_DISABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+	{
+		.gpio = 62,
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_ENABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+	{
+		.gpio = 5, //power led
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_ENABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+	{
+		.gpio = 3, //2gwifi led
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_ENABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+	{
+		.gpio = 2, //5gwifi led
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_ENABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+	{
+		.gpio = 1, //usb power
+		.func = 0,
+		.pull = GPIO_NO_PULL,
+		.drvstr = GPIO_2MA,
+		.oe = GPIO_OE_ENABLE,
+		.gpio_vm = GPIO_VM_ENABLE,
+		.gpio_od_en = GPIO_OD_DISABLE,
+		.gpio_pu_res = GPIO_PULL_RES2
+	},
+};
+
 gpio_func_data_t uart1_gpio_dk01[] = {
 	{
 		.gpio = 60,
@@ -1294,6 +1367,22 @@ board_ipq40xx_params_t board_params[] = {
 		.nor_nand_available = 0,
 		.nor_emmc_available = 0,
 		.dtb_config_name = { "config@5", "config@ap.dk01.1-c2" },
+	},
+	{
+		.machid = MACH_TYPE_IPQ40XX_ALIYUN_AP4220,
+		.ddr_size = (256 << 20),
+		.mtdids = "nand1=nand1,nand2=spi0.0",
+		.console_uart_cfg = &uart1_console_uart_dk01,
+		.sw_gpio = aliyun_ap4220_sw_gpio_qfn,
+		.sw_gpio_count = ARRAY_SIZE(aliyun_ap4220_sw_gpio_qfn),
+		.edma_cfg = {
+			ipq40xx_edma_cfg(0, 5, PSGMII,
+					0, 1, 2, 3, 4)
+		},
+		.spi_nand_available = 1,
+		.nor_nand_available = 0,
+		.nor_emmc_available = 0,
+		.dtb_config_name = { "config@1", "config@aliyun-ap4220" },
 	},
 	{
 		.machid = MACH_TYPE_IPQ40XX_AP_DK04_1_C1,

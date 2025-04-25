@@ -463,6 +463,7 @@ void board_nand_init(void)
 	}
 #endif
 	if ((gboard_param->machid == MACH_TYPE_IPQ40XX_AP_DK01_1_C2) ||
+	(gboard_param->machid == MACH_TYPE_IPQ40XX_ALIYUN_AP4220) ||
 		(gboard_param->machid == MACH_TYPE_IPQ40XX_AP_DK05_1_C1) ||
 		(gboard_param->machid == MACH_TYPE_IPQ40XX_AP_DK04_1_C5)) {
 		spi_nand_init();
@@ -597,6 +598,7 @@ int board_eth_init(bd_t *bis)
 	case MACH_TYPE_IPQ40XX_AP_DK01_1_S1:
 	case MACH_TYPE_IPQ40XX_AP_DK01_1_C2:
 	case MACH_TYPE_IPQ40XX_AP_DK05_1_C1:
+	case MACH_TYPE_IPQ40XX_ALIYUN_AP4220:
 		mdelay(1);
 		writel(GPIO_OUT, GPIO_IN_OUT_ADDR(62));
 		ipq40xx_register_switch(ipq40xx_qca8075_phy_init);
