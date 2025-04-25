@@ -320,6 +320,7 @@ typedef struct {
 #define CONFIG_SYS_MMC_ENV_DEV  0
 #endif
 
+//#define CONFIG_SEC_AUTH	// default disable
 
 #define CONFIG_MTD_DEVICE
 #define CONFIG_MTD_PARTITIONS
