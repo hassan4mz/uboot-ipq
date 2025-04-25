@@ -17,6 +17,7 @@ build.clean.log
 *.srec
 *.md5
 *.lds
+*.patch
 
 # 构建配置和依赖信息
 *.depend
