@@ -59,6 +59,7 @@ System.map
 /tools/*.o
 /tools/*.su
 /tools/*.map
+/tools/envcrc
 
 # 通用递归规则（确保子目录下中间产物也忽略）
 **/*.o
