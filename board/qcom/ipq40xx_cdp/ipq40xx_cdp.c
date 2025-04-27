@@ -721,7 +721,7 @@ void ipq_fdt_fixup_usb_device_mode(void *blob)
 	const char *property = NULL;
 	const char *node[] = {"/soc/ssphy", "/soc/hsphy", "/soc/usb3"};
 	char *usb_cfg;
-	struct fdt_property *prop = NULL;
+	const struct fdt_property *prop = NULL;
 
 	usb_cfg = getenv("usb_mode");
 	if (!usb_cfg)
