@@ -1,4 +1,4 @@
 1、克隆本项目的源码：git clone https://github.com/1980490718/uboot-ipq.git
 2、克隆项目所需的工具链：git clone https://github.com/1980490718/glsdk53.git
 3、修改build.sh的第44、45行配置好工具链,可选注释掉或者删掉第136-139行
-4、输入build.sh board来编译uboot,编译出的boot文件位置位在bin文件夹
+4、输入./build.sh board来编译uboot,编译出的boot文件位置位在bin文件夹
