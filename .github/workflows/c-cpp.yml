@@ -1,0 +1,199 @@
+name: U-Boot CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      board_name:
+        description: 'Board name to build (e.g.: cdp, ap4220, all for all boards)'
+        required: false
+        default: 'all'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      UBOOT_DIR: uboot
+    
+    steps:
+    - name: Checkout U-Boot repository
+      uses: actions/checkout@v4
+      with:
+        path: uboot-ipq40xx
+        submodules: recursive
+
+    - name: Cache QSDK toolchain
+      id: cache-toolchain
+      uses: actions/cache@v3
+      with:
+        path: openwrt-sdk-ipq806x-qsdk53
+        key: ${{ runner.os }}-qsdk-toolchain-${{ hashFiles('uboot-ipq40xx/Makefile') }}
+        restore-keys: |
+          ${{ runner.os }}-qsdk-toolchain-
+
+    - name: Checkout QSDK toolchain (if not cached)
+      if: steps.cache-toolchain.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: 1980490718/openwrt-sdk-ipq806x-qsdk53
+        path: openwrt-sdk-ipq806x-qsdk53
+
+    # Set global date variables (UTC+8)
+    - name: Set UTC+8 date variables
+      id: datetime
+      run: |
+        # Install timezone data and set to Shanghai (UTC+8)
+        sudo apt-get install -y tzdata
+        sudo ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/loctime
+        
+        # Get dates in UTC+8
+        export TZ="Asia/Shanghai"
+        current_date=$(date +'%Y.%m.%d')
+        current_datetime=$(date +'%Y-%m-%d %H:%M:%S')
+        
+        # Set environment variables
+        echo "BUILD_DATE=${current_date}" >> $GITHUB_ENV
+        echo "BUILD_DATETIME=${current_datetime}" >> $GITHUB_ENV
+        echo "formattedDate=${current_date}" >> $GITHUB_OUTPUT
+        
+        # Verify timezone setting
+        echo "Current timezone: $(date +'%Z %z')"
+        echo "Current UTC+8 date: ${current_date}"
+        echo "Current UTC+8 datetime: ${current_datetime}"
+
+    - name: Set up build environment
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y tzdata build-essential git make gcc bison flex \
+          libssl-dev bc u-boot-tools xxd zip ccache
+
+        # Set up ccache
+        echo "/usr/lib/ccache" >> $GITHUB_PATH
+        mkdir -p ~/.ccache
+        echo "max_size = 2G" > ~/.ccache/ccache.conf
+        echo "compiler_check = content" >> ~/.ccache/ccache.conf
+
+        # Verify timezone is still UTC+8
+        echo "Verifying timezone (should be CST/UTC+8):"
+        date
+        echo "Timezone info:"
+        timedatectl || echo "timedatectl not available"
+
+        # Output date info for debugging
+        echo "Build date: $BUILD_DATE (UTC+8)"
+        echo "Build datetime: $BUILD_DATETIME (UTC+8)"
+
+        # Set toolchain environment variables
+        STAGING_DIR="$GITHUB_WORKSPACE/openwrt-sdk-ipq806x-qsdk53/staging_dir"
+        TOOLCHAIN_PATH="$STAGING_DIR/toolchain-arm_cortex-a7_gcc-4.8-linaro_uClibc-1.0.14_eabi"
+        
+        # Verify toolchain exists
+        if [ ! -d "$TOOLCHAIN_PATH" ]; then
+          echo "::error::Toolchain directory not found at $TOOLCHAIN_PATH"
+          exit 1
+        fi
+
+        # Add toolchain and host tools to PATH
+        echo "$TOOLCHAIN_PATH/bin:$STAGING_DIR/host/bin" >> $GITHUB_PATH
+        echo "STAGING_DIR=$STAGING_DIR" >> $GITHUB_ENV
+        echo "TOOLPATH=$TOOLCHAIN_PATH" >> $GITHUB_ENV
+
+    - name: Verify toolchain and sstrip
+      run: |
+        echo "Toolchain path: $TOOLPATH"
+        echo "Current UTC+8 time: $(TZ=Asia/Shanghai date)"
+        echo "Build started at: $BUILD_DATETIME (UTC+8)"
+        arm-openwrt-linux-gcc --version
+        which arm-openwrt-linux-gcc
+        which sstrip
+        sstrip --version || echo "sstrip version check not available"
+        echo "CCACHE stats:"
+        ccache -s
+
+    - name: Build U-Boot
+      working-directory: ./uboot-ipq40xx
+      run: |
+        # Ensure timezone is set correctly for the build process
+        export TZ="Asia/Shanghai"
+        
+        # Include precise date info in build logs
+        echo "Build started at: $BUILD_DATETIME (UTC+8)" > build-info.txt
+        echo "Current UTC+8 time at build start: $(date +'%Y-%m-%d %H:%M:%S')" >> build-info.txt
+        
+        # Replace hardcoded paths with environment variables
+        sed -i "s|/home/a/uboot-ipq40xx1/openwrt-sdk-ipq806x-qsdk53/staging_dir|$GITHUB_WORKSPACE/openwrt-sdk-ipq806x-qsdk53/staging_dir|g" build.sh
+        
+        # Set build environment variables with ccache support
+        export MAKECMD="make --silent ARCH=arm CROSS_COMPILE=\"ccache arm-openwrt-linux-\""
+        export CONFIG_BOOTDELAY=1
+        export MAX_UBOOT_SIZE=524288
+        
+        # Enable ccache for the build
+        export CCACHE_DIR="$HOME/.ccache"
+        export CCACHE_BASEDIR="$GITHUB_WORKSPACE/uboot-ipq40xx"
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=6
+        
+        chmod +x build.sh
+        if [[ "${{ github.event.inputs.board_name }}" != "all" && "${{ github.event.inputs.board_name }}" != "" ]]; then
+          ./build.sh "${{ github.event.inputs.board_name }}"
+        else
+          ./build.sh all
+        fi
+        
+        # Record final build time
+        echo "Build completed at: $(date +'%Y-%m-%d %H:%M:%S %Z') (UTC+8)" >> build-info.txt
+        echo "CCACHE stats after build:"
+        ccache -s
+
+    - name: Archive artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: openwrt-ipq40xx-u-boot-stripped-artifacts-${{ env.BUILD_DATE }}
+        path: |
+          uboot-ipq40xx/bin/*.bin
+          uboot-ipq40xx/bin/*.elf
+          uboot-ipq40xx/bin/*.md5
+          uboot-ipq40xx/bin/*.zip
+          uboot-ipq40xx/build-info.txt
+        retention-days: 90
+        if-no-files-found: error
+
+    - name: Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs-${{ env.BUILD_DATE }}
+        path: |
+          uboot-ipq40xx/*.log
+        retention-days: 3
+        if-no-files-found: ignore
+
+    - name: Upload ccache stats
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ccache-stats-${{ env.BUILD_DATE }}
+        path: ~/.ccache/ccache.conf
+        retention-days: 3
+
+    - name: Create Release
+      if: success() && github.event_name == 'push'
+      uses: softprops/action-gh-release@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: |
+          uboot-ipq40xx/bin/*.zip
+        tag_name: "v${{ env.BUILD_DATE }}"
+        name: "U-Boot Build ${{ env.BUILD_DATE }}"
+        body: |
+          Automated U-Boot build for IPQ40xx platforms
+          Built on: ${{ env.BUILD_DATETIME }} (UTC+8)
+          Commit: ${{ github.sha }}
+          Build artifacts are retained for 90 days.
+        draft: false
+        prerelease: false
