@@ -6,8 +6,8 @@
  * SPDX-License-Identifier:GPL-2.0-or-later
 */
 
-#ifndef _IPQ40XX_JALAPENO_H
-#define _IPQ40XX_JALAPENO_H
+#ifndef _IPQ40XX_AP_DK01_1_C2
+#define _IPQ40XX_AP_DK01_1_C2
 
 #include <configs/ipq40xx_cdp.h>
 
@@ -58,4 +58,4 @@
 	"recovery_file=fwupdate.bin\0"							\
 	"mtdparts=" MTDPARTS_DEFAULT "\0"						\
 
-#endif /* _IPQ40XX_JALAPENO_H */
+#endif /* _IPQ40XX_AP_DK01_1_C2 */
